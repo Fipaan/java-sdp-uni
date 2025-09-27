@@ -57,8 +57,8 @@ public class MessengerAdapter implements Messenger {
                 Message msg = messageHistory[i];
                 io.writeStr(String.format("[%s] %s: %s\n",
                                 msg.getTimestamp(),
-                                msg.username,
-                                msg.message));
+                                msg.getUsername(),
+                                msg.getMessage()));
             }
             lastHistoryRead = messageHistoryCount;
         } catch (IOException e) {
