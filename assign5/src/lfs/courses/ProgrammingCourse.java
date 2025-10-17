@@ -1,12 +1,11 @@
 package lfs.courses;
 
 public class ProgrammingCourse implements Course {
-    private String name;
-    public String getName() { return name; }
-    public Course setName(String name) { this.name = name; return this; }
-
-    public ProgrammingCourse() { name = "Programming"; }
-    public ProgrammingCourse(String name) { this.name = name; }
+    private boolean startedLearning = false;
+    public ProgrammingCourse() {}
+    
+    public void startLearning() { startedLearning = true; }
+    public boolean isStartedLearning() { return startedLearning; }
 
     public String deliverContent() {
         return "Programming course";

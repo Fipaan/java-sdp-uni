@@ -1,8 +1,8 @@
 package lfs.courses;
 
 public interface Course {
-    String getName();
-    Course setName(String name);
+    void startLearning();
+    boolean isStartedLearning();
 
     String deliverContent();
 }

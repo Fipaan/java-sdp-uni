@@ -34,6 +34,9 @@ public class App {
     public FOList currentStudentCourses;
     public FOList courseList;
     public String selectedCourse = "None";
+    public Course selectedCourseS = null;
+    public RContainer<JButton> startLearningButton = new RContainer<>();
+    public RContainer<JButton> finishLearningButton = new RContainer<>();
     public RContainer<JButton> submitNewCourse = new RContainer<>();
     public boolean enrolling = false;
 
@@ -65,6 +68,36 @@ public class App {
             .scaleL(0.5, 0.4)
             .centerX()
             .scaleW(1 - sncW)
+        );
+        if (selectedCourseS != null) {
+            if (!selectedCourseS.isStartedLearning()) {
+                FGUI.modifyBoundsAndReset(size, startLearningButton, rect -> rect
+                    .scale (tW,  0.1)
+                    .scaleL(0.5, 0.5)
+                    .centerX()
+                );
+                FGUI.modifyBoundsAndReset(size, finishLearningButton, rect -> rect
+                    .scale (0)
+                    .scaleL(0.5, 0.5)
+                    .centerX()
+                );
+            } else {
+                FGUI.modifyBoundsAndReset(size, startLearningButton, rect -> rect
+                    .scale (0)
+                    .scaleL(0.5, 0.5)
+                    .centerX()
+                );
+                FGUI.modifyBoundsAndReset(size, finishLearningButton, rect -> rect
+                    .scale (tW,  0.1)
+                    .scaleL(0.5, 0.5)
+                    .centerX()
+                );
+            }
+        }
+        FGUI.modifyBoundsAndReset(size, finishLearningButton, rect -> rect
+            .scale (tW,  0.1)
+            .scaleL(0.5, 0.5)
+            .centerX()
         );
         FGUI.modifyBoundsAndReset(size, submitNewCourse, rect -> rect
             .scale (tW,  0.1)
@@ -120,28 +153,24 @@ public class App {
             model.removeElementAt(i);
         }
         for (Course course : currentStudent.getCourses()) {
-            model.addElement(course.getName());
+            model.addElement(course.deliverContent());
         }
         currentStudentCourses.setVisible(true);
     }
     private void drawEnroll() {
-        updateOnResize();
-        if (!enrolling) {
-            courseList.getComboBox().setVisible(false);
-            checkboxCertificate.obj.setVisible(false);
-            checkboxGamification.obj.setVisible(false);
-            checkboxMentor.obj.setVisible(false);
-            submitNewCourse.obj.setVisible(false);
-        } else {
+        startLearningButton.obj.setVisible(!enrolling);
+        finishLearningButton.obj.setVisible(!enrolling);
+        courseList.getComboBox().setVisible(enrolling);
+        checkboxCertificate.obj.setVisible(enrolling);
+        checkboxGamification.obj.setVisible(enrolling);
+        checkboxMentor.obj.setVisible(enrolling);
+        submitNewCourse.obj.setVisible(enrolling);
+        if (enrolling) {
             isCertificate = false;
             isGamification = false;
             isMentor = false;
-            courseList.getComboBox().setVisible(true);
-            checkboxCertificate.obj.setVisible(true);
-            checkboxGamification.obj.setVisible(true);
-            checkboxMentor.obj.setVisible(true);
-            submitNewCourse.obj.setVisible(true);
         }
+        updateOnResize();
     }
     private void initTextbox() {
         textbox = new FTextboxBuilder()
@@ -221,7 +250,7 @@ public class App {
         }, "(none)");
 
         currentStudentCourses = new FOList(frame, name -> {
-            Course course = ArrayUtils.findElement(currentStudent.getCourses(), c -> c.getName().equals(name));
+            Course course = ArrayUtils.findElement(currentStudent.getCourses(), c -> c.deliverContent().equals(name));
             if (course == null) {
                 FGUI.notifyWarn("Course %s doesn't exist! Deleting...", name);
                 currentStudentCourses.removeElement(name);
@@ -229,6 +258,7 @@ public class App {
                 return;
             }
             enrolling = false;
+            selectedCourseS = course;
             drawEnroll();
         }, () -> {
             enrolling = true;
@@ -241,7 +271,30 @@ public class App {
             .addElement("Math")
             .addElement("Programming")
             .setVisible(false);
-            
+        
+        startLearningButton.obj  = new JButton("Start Learning!");
+        startLearningButton.obj.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                currentStudent.startLearning(selectedCourseS);
+                updateOnResize();
+            }
+        });
+        startLearningButton.obj.setVisible(false);
+        frame.add(startLearningButton.obj);
+
+        finishLearningButton.obj = new JButton("Finish Learning");
+        finishLearningButton.obj.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                currentStudent.completeCourse(selectedCourseS);
+                currentStudentCourses.removeElement(selectedCourseS.deliverContent());
+                currentStudentCourses.setSelectedIndex(0);
+                selectedCourseS = null;
+                updateOnResize();
+            }
+        });
+        finishLearningButton.obj.setVisible(false);
+        frame.add(finishLearningButton.obj);
+        
         submitNewCourse.obj = new JButton("Enroll!");
         submitNewCourse.obj.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -260,6 +313,7 @@ public class App {
                 if (isGamification) course = new GamificationDecorator(course);
                 if (isMentor)       course = new MentorSupportDecorator(course);
                 currentStudent.enrollInCourse(course);
+                currentStudentCourses.getComboBoxModel().addElement(course.deliverContent());
             }
         });
         submitNewCourse.obj.setVisible(false);

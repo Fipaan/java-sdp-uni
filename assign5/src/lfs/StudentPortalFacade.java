@@ -48,11 +48,20 @@ public class StudentPortalFacade {
     public void startLearning(Course course) {
         Info.printfn("Starting learning: `%s`", course.deliverContent());
         expectCourseEnrolled(course, "start");
+        if (course.isStartedLearning()) {
+            FGUI.notifyWarn("Already started learning `%s`", course.deliverContent());
+            return;
+        }
+        course.startLearning();
         FGUI.notifyInfo("Keep up with learning `%s`", course.deliverContent());
     }
     public void completeCourse(Course course) {
         Info.printfn("Completed learning: `%s`", course.deliverContent());
         expectCourseEnrolled(course, "complete");
+        if (!course.isStartedLearning()) {
+            FGUI.notifyWarn("You need to start course`%s` first!", course.deliverContent());
+            return;
+        }
         FGUI.notifyInfo("Succesfully completed `%s`. Congratulations!", course.deliverContent());
         courses.remove(course);
     }
