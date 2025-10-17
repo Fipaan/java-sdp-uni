@@ -26,6 +26,8 @@ public class FTextbox implements HasTextField<FTextbox>, HasHint<FTextbox>, HasB
     public float getTextFieldPerc() { return textFieldPerc; }
     public FTextbox setTextFieldPerc(float perc) { textFieldPerc = perc; return this; }
 
+    public FTextbox setText(String text) { getTextField().setText(text); return this; }
+
     private RContainer<JLabel> hint;
     public JLabel getHint() { return hint.obj; }
     public FTextbox setHint(JLabel hint) { Todo.New("who owns it"); return this; }

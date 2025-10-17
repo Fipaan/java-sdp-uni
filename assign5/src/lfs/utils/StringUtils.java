@@ -8,4 +8,8 @@ public class StringUtils {
                 elem
         );
     }
+   
+    public static boolean isValidName(String input) {
+        return input.matches("^[A-Z][a-zA-Z -]+[a-zA-Z]$");
+    }
 }

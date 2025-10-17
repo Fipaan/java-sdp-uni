@@ -12,6 +12,9 @@ public class StudentPortalFacade {
     public StudentPortalFacade setName(String name) { studentName = name; return this; }
     private ArrayList<Course> courses = new ArrayList<>();
 
+    public ArrayList<Course> getCourses() { return courses; }
+    public StudentPortalFacade setCourses(ArrayList<Course> cs) { courses = cs; return this; }
+    
     public StudentPortalFacade(String name) { studentName = name; }
 
     public void expectCourseEnrolledToggle(Course course, String action, boolean enrolled) {
