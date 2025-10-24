@@ -17,6 +17,8 @@ public class FOList implements HasRect<FOList> {
     private RContainer<JComboBox<String>> comboBox;
     public JComboBox<String> getComboBox() { return comboBox.obj; }
     public FOList setComboBox(JComboBox<String> box) { comboBox.obj = box; return this; }
+    public FRectangle getFRect() { return comboBox.rect; }
+    public FOList setFRect(FRectangle rect) { comboBox.rect = rect; return this; }
 
     public FOList setSelectedItem(String item) { getComboBox().setSelectedItem(item); return this; }
     public FOList setSelectedIndex(int index) { getComboBox().setSelectedIndex(index); return this; }

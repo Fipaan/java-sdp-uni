@@ -5,18 +5,18 @@ import lfs.gui.has.HasContainer;
 import lfs.errors.FError;
 import java.awt.*;
 
-public class RContainer<T extends Container> implements HasContainer<RContainer<T>>, HasRect<RContainer<T>> {
-    public T obj;
+public class RContainer<Cont extends Container> implements HasContainer<RContainer<Cont>, Cont>, HasRect<RContainer<Cont>> {
+    public Cont obj;
     public FRectangle rect;
     public RContainer()                      { obj = null; rect = new FRectangle(); }
-    public RContainer(T o)                   { obj = o;    rect = new FRectangle(); }
-    public RContainer(T o, FRectangle frect) { obj = o;    rect = frect;            }
+    public RContainer(Cont o)                   { obj = o;    rect = new FRectangle(); }
+    public RContainer(Cont o, FRectangle frect) { obj = o;    rect = frect;            }
 
-    public Container getContainer() { return obj; }
-    public RContainer setContainer(Container container) { throw FError.New("UB"); }
+    public RContainer<Cont> resetBounds() { obj.setBounds(getRect()); return this; }
 
-    public Component getComponent() { return obj; }
-    public RContainer setComponent(Component component) { throw FError.New("UB"); }
+    // interfaces
+    public Cont getContainer() { return obj; }
+    public RContainer setContainer(Cont container) { obj = container; return this; }
     
     public int getX()      { return rect.getX();      }
     public int getY()      { return rect.getY();      }

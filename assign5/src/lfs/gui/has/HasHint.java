@@ -2,7 +2,7 @@ package lfs.gui.has;
 
 import javax.swing.JLabel;
 
-public interface HasHint<T extends HasHint<T>> {
+public interface HasHint<Self extends HasHint<Self>> {
     JLabel getHint();
-    T setHint(JLabel hint);
+    Self setHint(JLabel hint);
 }

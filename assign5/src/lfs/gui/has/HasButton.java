@@ -2,7 +2,7 @@ package lfs.gui.has;
 
 import javax.swing.JButton;
 
-public interface HasButton<T extends HasButton<T>> {
+public interface HasButton<Self extends HasButton<Self>> {
     JButton getButton();
-    T setButton(JButton btn);
+    Self setButton(JButton btn);
 }

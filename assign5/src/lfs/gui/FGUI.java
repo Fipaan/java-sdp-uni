@@ -9,15 +9,9 @@ import lfs.gui.wrapper.*;
 
 public class FGUI {
     public static float getBaseFontSize(Dimension screenSize) { return Math.max(12, (float)screenSize.width / 20); }
-    public static <T extends Container> void resetBounds(RContainer<T> comp) {
-        comp.setBounds(comp.getRect());
-    }
-    public static FRectangle resetByScreenSize(Dimension screenSize, RContainer<?> obj) {
-        return obj.rect.setSize(screenSize).setLocation(screenSize);
-    }
     public static <T extends Container> void modifyBoundsAndReset(Dimension screenSize, RContainer<T> comp, Consumer<FRectangle> f) {
-        f.accept(resetByScreenSize(screenSize, comp));
-        resetBounds(comp);
+        f.accept(comp.rect.resetRectBySize(screenSize));
+        comp.resetBounds();
     }
 
     public static <T> void bindKey(JComponent comp, String key, Consumer<T> action, T ref) {

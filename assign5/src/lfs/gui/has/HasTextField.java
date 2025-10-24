@@ -2,7 +2,7 @@ package lfs.gui.has;
 
 import javax.swing.JTextField;
 
-public interface HasTextField<T extends HasTextField<T>> {
+public interface HasTextField<Self extends HasTextField<Self>> {
     JTextField getTextField();
-    T setTextField(JTextField tf);
+    Self setTextField(JTextField tf);
 }

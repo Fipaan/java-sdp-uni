@@ -12,12 +12,14 @@ import java.awt.event.*;
 import java.util.function.Consumer;
 
 
-public class FTextbox implements HasTextField<FTextbox>, HasHint<FTextbox>, HasButton<FTextbox>, HasRect<FTextbox>, HasFont<FTextbox> {
+public class FTextbox implements HasTextField<FTextbox>, HasHint<FTextbox>, HasButton<FTextbox>, HasRect<FTextbox>, HasFont<FTextbox>, HasContainer<FTextbox, JLayeredPane> {
     public static final float DEFAULT_TF_PERC    = 0.7f;
     public static final float DEFAULT_HB_PERC    = 0.05f;
     public static final float DEFAULT_FONT_RATIO = 0.9f;
 
     private JLayeredPane layeredPane;
+    public JLayeredPane getContainer() { return layeredPane; }
+    public FTextbox setContainer(JLayeredPane pane) { layeredPane = pane; return this; }
 
     private RContainer<JTextField> textField;
     public JTextField getTextField() { return textField.obj; }
@@ -48,6 +50,8 @@ public class FTextbox implements HasTextField<FTextbox>, HasHint<FTextbox>, HasB
     private FRectangle rect;
     public Rectangle getRect() { return rect.getRect(); }
     public FTextbox setRect(Rectangle rect) { this.rect.setRect(rect); rectResize(); return this; }
+    public FRectangle getFRect() { return rect; }
+    public FTextbox setFRect(FRectangle rect) { this.rect = rect; return this; }
     
     private Font baseFont;
     public Font getFont() { return baseFont; }
@@ -56,11 +60,14 @@ public class FTextbox implements HasTextField<FTextbox>, HasHint<FTextbox>, HasB
     public float getFontRatio() { return fontRatio; }
     public FTextbox setFontRatio(float ratio) { fontRatio = ratio; return this; }
     public float getFontSize() { return (float)(FGUI.getBaseFontSize(screenSize) * fontRatio); }
+
+    public Font deriveFont(float fontSize) { return getFont().deriveFont(fontSize); }
     public FTextbox updateFontSize() {
         float fontSize = getFontSize();
-        textField.setFont(deriveFont(fontSize));
-        hint.setFont(deriveFont(fontSize));
-        button.setFont(deriveFont(fontSize));
+        Font newFont = deriveFont(fontSize);
+        textField.getContainer().setFont(newFont);
+        hint.getContainer().setFont(newFont);
+        button.getContainer().setFont(newFont);
         return this;
     }
 
@@ -82,7 +89,9 @@ public class FTextbox implements HasTextField<FTextbox>, HasHint<FTextbox>, HasB
 
         textField.obj.getDocument().addDocumentListener(new DocumentListener() {
             private void checkEmpty() {
-                hint.setVisible(textField.obj.getText().trim().isEmpty());
+                hint.getContainer()
+                    .setVisible(textField.getContainer()
+                                         .getText().trim().isEmpty());
             }
 
             @Override
@@ -117,7 +126,7 @@ public class FTextbox implements HasTextField<FTextbox>, HasHint<FTextbox>, HasB
         layeredPane.add(button.obj, JLayeredPane.DEFAULT_LAYER);
     }
 
-    private void rectResize() {
+    public void rectResize() {
         layeredPane.setBounds(getRect());
         rawRectResizeTextField();
         rawRectResizeHint();
@@ -125,31 +134,31 @@ public class FTextbox implements HasTextField<FTextbox>, HasHint<FTextbox>, HasB
     }
     private <T extends Container> void rawRectModifyBounds(RContainer<T> comp, Consumer<FRectangle> f) {
         f.accept(comp.rect.setRect(getRect()));
-        FGUI.resetBounds(comp);
+        comp.resetBounds();
     }
     private <T extends Container> void modifyBoundsAndReset(RContainer<T> comp, Consumer<FRectangle> f) {
         f.accept(comp.rect.setLocation(0, 0).setSize(getSize()));
-        FGUI.resetBounds(comp);
+        comp.resetBounds();
     }
 
     private void rawRectResizeTextField() {
         modifyBoundsAndReset(textField, rect -> rect
             .scaleW(textFieldPerc)
         );
-        textField.setFont(deriveFont(getFontSize()));
+        textField.getContainer().setFont(deriveFont(getFontSize()));
     }
     private void rawRectResizeHint() {
         modifyBoundsAndReset(hint, rect -> rect
             .scaleW(textFieldPerc)
             .phcut(hintBorderX, hintBorderY)
         );
-        hint.setFont(deriveFont(getFontSize()));
+        hint.getContainer().setFont(deriveFont(getFontSize()));
     }
     private void rawRectResizeButton() {
         modifyBoundsAndReset(button, rect -> rect
             .scaleW(buttonPerc, true)
         );
-        button.setFont(deriveFont(getFontSize()));
+        button.getContainer().setFont(deriveFont(getFontSize()));
     }
 
     private Dimension screenSize;

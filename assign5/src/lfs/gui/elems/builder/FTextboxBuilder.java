@@ -57,21 +57,18 @@ public class FTextboxBuilder {
         return this;
     }
 
-    private void verifyZero(int num, String name)    { if (num == 0)    throw FError.New(name + " is not specified"); } 
-    private void verifyZero(float num, String name)  { if (num == 0.0f) throw FError.New(name + " is not specified"); } 
-    private void verifyNull(Object obj, String name) { if (obj == null) throw FError.New(name + " is not specified"); } 
     public FTextbox build() {
-        verifyNull(parent, "Parent frame");
-        verifyNull(screenSize, "Screen size");
-        verifyZero(textFieldColumns, "Columns count");
-        verifyNull(foregroundText, "Text color");
-        verifyNull(hintMessage, "Hint message");
-        verifyNull(foregroundHint, "Hint color");
-        verifyNull(buttonMessage, "Button message");
-        verifyNull(onSubmit, "onSubmit callback");
-        verifyZero(textFieldPerc, "Text field width");
-        verifyZero(buttonPerc, "Button width");
-        verifyNull(f, "Font");
+        FError.verifyNotNull(parent, "Parent frame");
+        FError.verifyNotNull(screenSize, "Screen size");
+        FError.verifyNotZero(textFieldColumns, "Columns count");
+        FError.verifyNotNull(foregroundText, "Text color");
+        FError.verifyNotNull(hintMessage, "Hint message");
+        FError.verifyNotNull(foregroundHint, "Hint color");
+        FError.verifyNotNull(buttonMessage, "Button message");
+        FError.verifyNotNull(onSubmit, "onSubmit callback");
+        FError.verifyNotZero(textFieldPerc, "Text field width");
+        FError.verifyNotZero(buttonPerc, "Button width");
+        FError.verifyNotNull(f, "Font");
         return new FTextbox(parent, screenSize,
                     textFieldColumns, foregroundText,
                     hintMessage, foregroundHint,
