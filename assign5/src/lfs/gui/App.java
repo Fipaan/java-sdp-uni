@@ -18,13 +18,18 @@ import java.util.ArrayList;
 
 public class App {
     public Data data;
-    boolean isCertificate = false, isGamification = false, isMentor = false;
+    public AppState state = AppState.CHOOSE_STUDENT;
+
     public ArrayList<StudentPortalFacade> students = new ArrayList<>();
     public StudentPortalFacade currentStudent;
+    
+    public CourseFactory courseFactory = new CourseFactory();
     public static final String SELECTED_COURSE_NONE = "None";
     public String selectedCourse = SELECTED_COURSE_NONE;
+    boolean isCertificate = false, isGamification = false, isMentor = false;
+
     public Course selectedCourseS = null;
-    public AppState state = AppState.CHOOSE_STUDENT;
+
 
     private final double titleWidth = 0.66;
     private final float  fontRatio  = 0.7f;
@@ -313,20 +318,11 @@ public class App {
                     FGUI.notifyWarn("Can't enroll existing course! (%s)", opt);
                     return;
                 }
-                Course course;
-                switch (selectedCourse) {
-                    case "Math": {
-                        course = new MathCourse();
-                    } break;
-                    case "Programming": {
-                        course = new ProgrammingCourse();
-                    } break;
-                    case SELECTED_COURSE_NONE: {
-                        FGUI.notifyWarn("You didn't specify course!");
-                        return;
-                    }
-                    default: throw FError.New("Unknown selectedCourse: " + selectedCourse);
+                if (selectedCourse.equals(SELECTED_COURSE_NONE)) {
+                    FGUI.notifyWarn("You didn't specify course!");
+                    return;
                 }
+                Course course = courseFactory.build(selectedCourse);
                 if (isCertificate)  course = new CertificateDecorator(course);
                 if (isGamification) course = new GamificationDecorator(course);
                 if (isMentor)       course = new MentorSupportDecorator(course);
