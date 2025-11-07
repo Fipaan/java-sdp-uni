@@ -1,5 +1,6 @@
 package fipaan.com.console;
 
+import fipaan.com.console.style.*;
 import java.io.*;
 
 public class ConsoleBuilder {

@@ -1,6 +1,7 @@
 package fipaan.com.utils;
 
-import fipaan.com.geom.wrapper.FDimension;
+import fipaan.com.wrapper.FDimension;
+import fipaan.com.errors.FThrow;
 import fipaan.com.errors.FError;
 import java.io.*;
 
@@ -9,22 +10,28 @@ public class ConsoleUtils {
     public static void outWrite(OutputStream out, String str) {
         try {
             out.write(str.getBytes());
-        } catch (IOException e) { throw FError.New(e, "write failed"); }
+        } catch (IOException e) { FThrow.New(e, "write failed"); }
+    }
+    public static String escaped(String fmt, Object... args) {
+        return String.format(ESC + fmt, args);
+    }
+    public static String escaped(Object obj) {
+        return ESC + obj.toString();
     }
     public static void escaped(OutputStream out, String fmt, Object... args) {
-        outWrite(out, String.format(ESC + fmt, args));
+        outWrite(out, escaped(fmt, args));
     }
     public static void escaped(OutputStream out, Object obj) {
-        escaped(out, "%s", obj.toString());
+        outWrite(out, escaped(obj));
     }
     public static void escaped(OutputStream out, boolean flushed, String fmt, Object... args) {
         String command = String.format(fmt, args);
-        outWrite(out, ESC + command);
+        outWrite(out, escaped(command));
         if (!flushed) return;
         try {
             out.flush();
         } catch (IOException e) {
-            throw FError.New(e, "Couldn't flush escape sequence: <ESC>%s", command);
+            FThrow.New(e, "Couldn't flush escape sequence: <ESC>%s", command);
         }
     }
     public static void escaped(OutputStream out, boolean flushed, Object obj) {

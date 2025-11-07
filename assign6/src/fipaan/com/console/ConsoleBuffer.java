@@ -1,29 +1,33 @@
 package fipaan.com.console;
 
-import java.util.ArrayList;
+import fipaan.com.console.style.*;
+import fipaan.com.string.*;
+import fipaan.com.printf.*;
+import fipaan.com.errors.FError;
+import fipaan.com.errors.FThrow;
+import fipaan.com.utils.*;
+import fipaan.com.*;
+import java.util.*;
+import java.io.OutputStream;
+import java.util.function.*;
 
 public class ConsoleBuffer {
     private StringBuilder sb = new StringBuilder();
     private IConsoleBuffer handler;
 
     public ConsoleBuffer(IConsoleBuffer h) { handler = h; }
-    public ConsoleBuffer(Console console) { this(new ConsoleBufferHandler(console)); }
     
-    public String handleKey(String input) { return handleKey(new StringCursor(input)); }
-    public String handleKey(StringCursor input) {
+    public String handleKey(OutputStream out, String input) { return handleKey(out, new StringCursor(input)); }
+    public String handleKey(OutputStream out, StringCursor input) {
         if (input.i >= input.length) return "";
-        int code = input.str.codepointAt(input.i);
+        int code = input.str.codePointAt(input.i);
         ConsoleKey key = ConsoleKey.getByCode(code);
+        int start = input.i;
+        input.i += 1;
         if (key != null) {
             switch (key) {
-                case ConsoleKey.Bell: {
-                    handler.ringBell();
-                    input.i += 1;
-                } break;
-                case ConsoleKey.Backspace: {
-                    if (handler.getX() > 0) handler.subX(1);
-                    input.i += 1;
-                } break;
+                case ConsoleKey.Bell: handler.ringBellAction(); break;
+                case ConsoleKey.Backspace: handler.removeAtCursorAction(); break;
                 case ConsoleKey.HorTab: {
                     handler.addX(1);
                     int x     = handler.getX();
@@ -31,314 +35,274 @@ public class ConsoleBuffer {
                     if (x >= width) handler
                        .addY(x / width)
                        .setX(x % width);
-                    input.i += 1;
                 } break;
-                case ConsoleKey.Newline: {
-                    handler
-                   .onLinuxResetX()
-                   .addY(1);
-                    input.i += 1;
-                } break;
-                case ConsoleKey.VerTab: {
-                    handler
-                   .addY(1);
-                    input.i += 1;
-                } break;
-                case ConsoleKey.Formfeed: {
-                    handler
-                   .moveToNextPage(1);
-                    input.i += 1;
-                } break;
-                case ConsoleKey.CarriageRet: {
-                    handler
-                   .setX(0);
-                    input.i += 1;
-                } break;
-                case ConsoleKey.ESC: {
-                    input.i += 1;
-                    dispatch(ESC_HANDLERS, input);
-                    if (input.i < 0) return null;
-                } break;
-                case ConsoleKey.Delete: {
-                    handler.deleteLastAtCurrentLine();
-                    input.i += 1;
-                } break;
+                case ConsoleKey.Newline:     handler.onLinuxResetXAction().addY(1); break;
+                case ConsoleKey.VerTab:      handler.addY(1); break;
+                case ConsoleKey.Formfeed:    handler.moveToNextPageAction(); break;
+                case ConsoleKey.CarriageRet: handler.setX(0); break;
+                case ConsoleKey.ESC:         dispatch(ESC_HANDLERS, input); break;
+                case ConsoleKey.Delete:      handler.deleteLastAtCurrentLineAction(); break;
+                default: FThrow.UNREACHABLE("ConsoleKey");
             }
+        } else handler.writeCodepointAction(code);
+        handler.writeOutAction(out, input.substring(start, input.i));
+        return input.toString();
+    }
+    public void handleKeys(OutputStream out, String input) {
+        while(true) {
+            input = handleKey(out, input);
+            if (input == null || input.length() == 0) break;
         }
     }
     private static void dispatch(Map<String, Consumer<StringCursor>> map, StringCursor input) {
         for (String prefix : map.keySet()) {
             if (input.startsWith(prefix)) {
                 input.i += prefix.length();
-                map.get(prefix).apply(input);
+                map.get(prefix).accept(input);
                 return;
             }
         }
-        throw FError.New("No handler found for: " + input);
+        FThrow.New("No handler found for: " + input);
     }
-    private static final Map<String, Consumer<StringCursor>> ESC_HANDLERS = Map.of(
-        "[", input -> { input.i += 1; handleCSIKey(input); },
+    private final Map<String, Consumer<StringCursor>> ESC_HANDLERS = Map.of(
+        "[", input -> handleCSIKey(input),
         "M", input -> {
-            input.i += 1;
             if (handler.getY() > 0) handler.subY(1);
-            else handler.scroll();
+            else handler.scrollUpAction();
         },
-        "7", input -> { input.i += 1; handler.saveDEC();             },
-        "8", input -> { input.i += 1; handler.restoreDEC();          },
-        "c", input -> { input.i += 1; handler.oldClearScreen();      },
+        "7", input -> handler.saveDECAction(),
+        "8", input -> handler.restoreDECAction(),
+        "c", input -> handler.oldClearScreenAction(),
         "(", input -> {
-            if (input.i == input.str.length()) { input.i = -1; return; }
-            switch (input.str.charAt(i)) {
-                case '0': { input.i += 2; handler.setLineDrawingMode(true);  return; }
-                case 'B': { input.i += 2; handler.setLineDrawingMode(false); return; }
-                default: throw FError.New("Unknown Line Drawing Mode sequence (<ESC>(%s)", input.toString());
+            RuntimeException err = FError.New("Unknown Line Drawing Mode sequence (<ESC>(%s)", input.toString());
+            if (input.i >= input.str.length()) throw err;
+            switch (input.charAt()) {
+                case '0': { input.i += 1; handler.setLineDrawingModeAction(true);  return; }
+                case 'B': { input.i += 1; handler.setLineDrawingModeAction(false); return; }
+                default: throw err;
             }
         }
     );
+    private boolean parseConsoleStyleAny(StringCursor input, ArrayList<ConsoleStyleAny> styles) {
+        String numStr = new String(sb);
+        sb.setLength(0);
+        int code = Integer.parseUnsignedInt(numStr);
+        ConsoleStyle style = ConsoleStyle.getByCode(code);
+        if (style != null) {
+            styles.add(new ConsoleStyleAny(style));
+            return true;
+        }
+        ConsoleColor16 color = ConsoleColor16.getByCode(code);
+        if (color != null) {
+            styles.add(new ConsoleStyleAny(color));
+            return true;
+        }
+        ConsoleColorMode mode = ConsoleColorMode.getByCode(code);
+        if (mode != null) {
+            FormattedObj[] fobj = Sscanf.sscanf(";2;%d", input.toString());
+            int read = Sscanf.lastReadLength;
+            if (read > 0) {
+                int value = fobj[0].getInt();
+                styles.add(new ConsoleStyleAny(new ConsoleColor256(mode, value)));
+                return true;
+            } else {
+                fobj = Sscanf.sscanf(";5;%d;%d;%d", input.toString());
+                read = Sscanf.lastReadLength;
+                if (read <= 0) return false;
+                input.i += read;
+                int r = fobj[0].getInt();
+                int g = fobj[1].getInt();
+                int b = fobj[2].getInt();
+                styles.add(new ConsoleStyleAny(new ConsoleColorRGB(mode, r, g, b)));
+                return true;
+            }
+        } else return false;
+    }
     private void handleCSIKey(StringCursor input) {
         char ch = input.charAt();
+        String cmd = input.toString();
         if (Character.isDigit(ch)) {
-            String cmd = input.toString();
             FormattedObj[] fobj1 = Sscanf.sscanf("%d", cmd);
-            int read = lastReadLength;
-            if (read > 0) {
-                input.i += read;
-                int num1 = fobj1[0].getInt();
-                switch (input.charAt()) {
-                    case ';': {
-                        FormattedObj[] fobj1 = Sscanf.sscanf("%d;%d;%dm", cmd);
-                        int readColor = lastReadLength;
-                        if (readColor > 0) {
-                            /* color/style */
-                            `[#;...;#m`   -> /* color/style seq, doesn't affect buffer */
-                            
-                            `[38;5;{ID}m` -> /* Set foreground color. (256 table)      */
-                            `[48;5;{ID}m` -> /* Set background color. (256 table)      */
-                            `[38;2;{ID}m` -> /* Set foreground color. (RGB table)      */
-                            `[48;2;{ID}m` -> /* Set background color. (RGB table)      */
-                        }
-                        /* cursor */
-                        `[{r};{c}H` ||
-                        `[{r};{c}f`   -> x = c - 1; y = r -1; /* column/row notaion is not convenient */
-                        /* other */
-                        `[{code};{string};{...}p` -> /* remaps key to specified string, for more information check https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#keyboard-strings */
-                    } break;
-                    /* cursor */
-                    case 'A': handler.subY(num1);         input.i += 1; return;
-                    case 'B': handler.addY(num1);         input.i += 1; return;
-                    case 'C': handler.addX(num1);         input.i += 1; return;
-                    case 'D': handler.subX(num1);         input.i += 1; return;
-                    case 'E': handler.addY(num1).setX(0); input.i += 1; return;
-                    case 'F': handler.subY(num1).setX(0); input.i += 1; return;
-                    case 'G': handler.setX(num1);         input.i += 1; return;
-                    case 'n': {
-                        if (num1 != 6) throw FError.New("unknown ANSI <ESC>[%dn", num1);
-                        handler.requestPosition();
+            int read = Sscanf.lastReadLength;
+            if (read <= 0) FThrow.UNREACHABLE("Sscanf");
+            int newI = input.i + read;
+            if (newI >= input.str.length()) {
+                FThrow.New("Expected command after number: <ESC>[%s", cmd);
+            }
+            int num1 = fobj1[0].getInt();
+            
+            char afterNum = input.charAt(newI);
+            if (afterNum != ';') input.i += read;
+            switch (afterNum) {
+                case ';': {
+                    sb.setLength(0);
+                    ArrayList<ConsoleStyleAny> styles = new ArrayList<>();
+                    String numStr = input.substring(input.i, input.i + read);
+                    sb.append(numStr);
+                    input.i += read;
+                    int oldI = input.i;
+                    String cmdColor = "";
+                    boolean validStyles = parseConsoleStyleAny(input, styles);
+                    while (validStyles) {
                         input.i += 1;
-                        return;
-                    }
-                    /* erase */
-                    case 'J': {
-                        switch num1: {
-                            case 0: handler.eraseCursorToEOS(); return;
-                            case 1: handler.eraseCursorToBOS(); return;
-                            case 2: handler.eraseScreen();      return;
-                            case 3: handler.eraseStoredLines(); return;
-                            default: throw FError.New("unknown erase code (<ESC>[%dJ)", num1);
-                        }
-                    }
-                    case 'K': {
-                        switch num1: {
-                            case 0: handler.eraseCursorToEOL(); return;
-                            case 1: handler.eraseCursorToBOL(); return;
-                            case 2: handler.eraseLine();        return;
-                            default: throw FError.New("unknown erase code (<ESC>[%dK)", num1);
-                        }
-                    }
-                    /* cursor shape */
-                    case 'q': {
-                        CursorShape shape = CursorShape.getByCode(num1);
-                        if (shape == null) {
-                            throw FError.New("unknown cursor shape code (<ESC>[%dq)", num1);
-                        }
-                        handler.setCursorShape(shape);
-                        return;
-                    }
-                    /* color/style */
-                    case 'm': {
-                        ConsoleStyle style = ConsoleStyle.getByCode(num1);
-                        if (style != null) {
-                            handler.setStyle(style);
-                        }
-                        ConsoleColor16 color = ConsoleColor16.getByCode(num1);
-                        if (color != null) {
-                            if (color.isColorMode()) {
-                                throw FError.New("colorspace wasn't specified for color mode");
+                        char ch2 = input.charAt();
+                        if (Character.isDigit(ch2)) { sb.append(ch2); }
+                          else if (ch2 == ';') {
+                            input.i += 1;
+                            if (!parseConsoleStyleAny(input, styles)) {
+                                validStyles = false;
+                                break;
                             }
-                            handler.setColor16(color);
-                        }
+                        } else if (ch2 == 'm') {
+                            if (sb.length() == 0) FThrow.New("expected number in style list sequence, got nothing (<ESC>[%s;m)", cmdColor);
+                            if (!parseConsoleStyleAny(input, styles)) validStyles = false;
+                            else input.i += 1;
+                            break;
+                        } else validStyles = false;
+                    }
+                    if (validStyles) {
+                        sb.setLength(0);
+                        handler.applyStylesAction(ArrayUtils.extractArr(ConsoleStyleAny.class, styles));
+                        return;
+                    } else input.i = oldI; // ;...
+                    /* cursor */
+                    boolean isMoving = false;
+                    FormattedObj[] fobj2 = Sscanf.sscanf("%d;%dH", cmd);
+                    int read2 = Sscanf.lastReadLength;
+                    if (read2 > 0) isMoving = true;
+                    else {
+                        fobj2    = Sscanf.sscanf("%d;%df", cmd);
+                        read2 = Sscanf.lastReadLength;
+                        if (read2 > 0) isMoving = true;
+                    }
+                    if (isMoving) {
+                        input.i += read2;
+                        int row = num1;
+                        int col = fobj2[1].getInt();
+                        handler
+                       .setX(col - 1)
+                       .setY(row - 1);
+                        return;
+                    }
+                    FThrow.TODO("{code};{string};{...}p");
+                    // NOTE: remaps key to specified string
+                    // For more information check:
+                    // https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#keyboard-strings
+                } return;
+                /* cursor */
+                case 'A': handler.subY(num1);         input.i += 1; return;
+                case 'B': handler.addY(num1);         input.i += 1; return;
+                case 'C': handler.addX(num1);         input.i += 1; return;
+                case 'D': handler.subX(num1);         input.i += 1; return;
+                case 'E': handler.addY(num1).setX(0); input.i += 1; return;
+                case 'F': handler.subY(num1).setX(0); input.i += 1; return;
+                case 'G': handler.setX(num1);         input.i += 1; return;
+                case 'n': {
+                    if (num1 != 6) FThrow.New("unknown ANSI <ESC>[%dn", num1);
+                    handler.requestPositionAction();
+                    input.i += 1;
+                    return;
+                }
+                /* erase */
+                case 'J': {
+                    input.i += 1;
+                    switch (num1) {
+                        case 0: handler.eraseCursorToEOSAction(); return;
+                        case 1: handler.eraseCursorToBOSAction(); return;
+                        case 2: handler.eraseScreenAction();      return;
+                        case 3: handler.eraseStoredLinesAction(); return;
+                        default: throw FError.New("unknown erase code (<ESC>[%dJ)", num1);
                     }
                 }
+                case 'K': {
+                    input.i += 1;
+                    switch (num1) {
+                        case 0: handler.eraseCursorToEOLAction(); return;
+                        case 1: handler.eraseCursorToBOLAction(); return;
+                        case 2: handler.eraseLineAction();        return;
+                        default: throw FError.New("unknown erase code (<ESC>[%dK)", num1);
+                    }
+                }
+                /* cursor shape */
+                case 'q': {
+                    input.i += 1;
+                    CursorShape shape = CursorShape.getByCode(num1);
+                    if (shape == null) FThrow.New("unknown cursor shape code (<ESC>[%dq)", num1);
+                    handler.setCursorShapeAction(shape);
+                    return;
+                }
+                /* color/style */
+                case 'm': {
+                    input.i += 1;
+                    ConsoleStyle style = ConsoleStyle.getByCode(num1);
+                    if (style != null) {
+                        handler.setStyleAction(style);
+                        return;
+                    }
+                    ConsoleColor16 color = ConsoleColor16.getByCode(num1);
+                    if (color != null) {
+                        handler.setColor16Action(color);
+                        return;
+                    }
+                    throw FError.New("Unknown mode sequence: <ESC>[%s", cmd);
+                }
             }
+            throw FError.New("Unknown ansi sequence: <ESC>[%s", cmd);
         }
+        input.i += 1;
         switch (ch) {
             /* cursor */
-            case 'H': { handler.setLocation(0, 0); } break;
-            `[H`          -> x = 0; y = 0;
-            `[{r};{c}H` ||
-            `[{r};{c}f`   -> x = c - 1; y = r -1; /* column/row notaion is not convenient */
-            `[{n}A`       -> y -= n;
-            `[{n}B`       -> y += n;
-            `[{n}C`       -> x += n;
-            `[{n}D`       -> x -= n;
-            `[{n}E`       -> x = 0; y += n;
-            `[{n}F`       -> x = 0; y -= n;
-            `[{n}G`       -> x = n;
-            `[6n`         -> /* request cursor position, doesn't affect buffer */
-            `[s`          -> sco = pos;
-            `[u`          -> pos = sco;
+            case 'H': handler.setLocation(0, 0);  return;
+            case 's': handler.saveSCOAction();    return;
+            case 'u': handler.restoreSCOAction(); return;
             /* erase */
-            `[J`          -> handler.eraseCursorToEOS();
-            `[0J`         -> /* erase from cursor until end of screen                 */
-            `[1J`         -> /* erase from cursor to beginning of screen              */
-            `[2J`         -> /* erase entire screen                                   */
-            `[3J`         -> /* erase saved lines (does nothing, we don't store them) */
-            `[K`          -> handler.eraseCursorToEOL();
-            `[0K`         -> /* erase from cursor to end of line                      */
-            `[1K`         -> /* erase start of line to the cursor                     */
-            `[2K`         -> /* erase the entire line                                 */
-            /* cursor shape */
-            `[0q`         -> /* changes cursor shape to steady block       */
-            `[1q`         -> /* changes cursor shape to steady block also  */
-            `[2q`         -> /* changes cursor shape to blinking block     */
-            `[3q`         -> /* changes cursor shape to steady underline   */
-            `[4q`         -> /* changes cursor shape to blinking underline */
-            `[5q`         -> /* changes cursor shape to steady bar         */
-            `[6q`         -> /* changes cursor shape to blinking bar       */
-            /* color/style */
-            `[#;...;#m`   -> /* color/style seq, doesn't affect buffer */
-            `[0m`         -> /* reset all modes (styles and colors)    */
-            `[1m`         -> /* set bold mode.                         */
-            `[2m`         -> /* set dim/faint mode.                    */
-            `[3m`         -> /* set italic mode.                       */
-            `[4m`         -> /* set underline mode.                    */
-            `[5m`         -> /* set blinking mode                      */
-            `[7m`         -> /* set inverse/reverse mode               */
-            `[8m`         -> /* set hidden/invisible mode              */
-            `[9m`         -> /* set strikethrough mode.                */
-            `[38;5;{ID}m` -> /* Set foreground color. (256 table)      */
-            `[48;5;{ID}m` -> /* Set background color. (256 table)      */
-            `[38;2;{ID}m` -> /* Set foreground color. (RGB table)      */
-            `[48;2;{ID}m` -> /* Set background color. (RGB table)      */
-            `[{c}m`       -> /* c should be in range of colors, then it sets specified color */
+            case 'J': handler.eraseCursorToEOSAction(); return;
+            case 'K': handler.eraseCursorToEOLAction(); return;
             /* screen */
-            `[={value}h`  -> /* Changes the screen width or type to the mode specified by value. */
-            `[=0h`        -> /* 40 x 25 monochrome (text)                                        */
-            `[=1h`        -> /* 40 x 25 color (text)                                             */
-            `[=2h`        -> /* 80 x 25 monochrome (text)                                        */
-            `[=3h`        -> /* 80 x 25 color (text)                                             */
-            `[=4h`        -> /* 320 x 200 4-color (graphics)                                     */
-            `[=5h`        -> /* 320 x 200 monochrome (graphics)                                  */
-            `[=6h`        -> /* 640 x 200 monochrome (graphics)                                  */
-            `[=7h`        -> /* Enables line wrapping                                            */
-            `[=13h`       -> /* 320 x 200 color (graphics)                                       */
-            `[=14h`       -> /* 640 x 200 color (16-color graphics)                              */
-            `[=15h`       -> /* 640 x 350 monochrome (2-color graphics)                          */
-            `[=16h`       -> /* 640 x 350 color (16-color graphics)                              */
-            `[=17h`       -> /* 640 x 480 monochrome (2-color graphics)                          */
-            `[=18h`       -> /* 640 x 480 color (16-color graphics)                              */
-            `[=19h`       -> /* 320 x 200 color (256-color graphics)                             */
-            `[={value}l`  -> /* Resets mode specified by `[={value}h                             */
+            case '=': {
+                FormattedObj[] fobj = Sscanf.sscanf("%d", input.toString());
+                int fullRead = Sscanf.lastReadLength;
+                if (fullRead <= 0) FThrow.New("Unknown screen instruction: <ESC>[%s", cmd);
+                input.i += fullRead;
+                int code = fobj[0].getInt();
+                ConsoleScreenMode screenMode = ConsoleScreenMode.getByCode(code);
+                if (screenMode == null) FThrow.New("Unknown screen instruction: <ESC>[%s", cmd);
+                if (input.i == input.length) FThrow.New("Unknown screen instruction: <ESC>[%s", cmd);
+                char ch2 = input.charAt();
+                input.i += 1;
+                switch (ch2) {
+                    case 'h': handler.setScreenModeAction(screenMode);   return;
+                    case 'l': handler.resetScreenModeAction(screenMode); return;
+                    default: throw FError.New("Unknown screen instruction: <ESC>[%s", cmd);
+                }
+            }
             /* common private modes */
-            `[?25l`       -> /* make cursor invisible */
-            `[?25h`       -> /* make cursor visible   */
-            `[?47l`       -> /* restore screen        */
-            `[?47h`       -> /* save screen           */
-            /* other */
-            `[{code};{string};{...}p` -> /* remaps key to specified string, for more information check https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#keyboard-strings */
+            case '?': {
+                FormattedObj[] fobj = Sscanf.sscanf("%d", input.toString());
+                int fullRead = Sscanf.lastReadLength;
+                if (fullRead <= 0) FThrow.New("Unknown private instruction: <ESC>[%s", cmd);
+                input.i += fullRead;
+                int code = fobj[0].getInt();
+                if (input.i == input.length) FThrow.New("Unknown private instruction: <ESC>[%s", cmd);
+                char mode = input.charAt();
+                input.i += 1;
+                switch (code) {
+                    case 25: {
+                        boolean isVisible;
+                        if (mode == 'l') isVisible = false;
+                        else if (mode == 'h') isVisible = true;
+                        else throw FError.New("Unknown mode for cursor visibility: <ESC>[%s", cmd);
+                        handler.setCursorVisibleAction(isVisible);
+                    } return;
+                    case 47: {
+                        if (mode == 'l') handler.restoreScreenAction();
+                        else if (mode == 'h') handler.saveScreenAction();
+                        else FThrow.New("Unknown mode for storing screen: <ESC>[%s", cmd);
+                    } return;
+                    default: throw FError.New("Unknown private instruction: <ESC>[%s", cmd);
+                }
+            }
+            default: throw FError.New("Unknown ansi sequence <ESC>[%s", cmd);
         }
     }
 }
-
-// handleESCKey() {
-//     /* cursor */
-//     `[H`          -> x = 0; y = 0;
-//     `[{r};{c}H` ||
-//     `[{r};{c}f`   -> x = c - 1; y = r -1; /* column/row notaion is not convenient */
-//     `[{n}A`       -> y -= n;
-//     `[{n}B`       -> y += n;
-//     `[{n}C`       -> x += n;
-//     `[{n}D`       -> x -= n;
-//     `[{n}E`       -> x = 0; y += n;
-//     `[{n}F`       -> x = 0; y -= n;
-//     `[{n}G`       -> x = n;
-//     `[6n`         -> /* request cursor position, doesn't affect buffer */
-//     `M`           -> if (y > 0) y -= 1; else /* scrolling */
-//     `7`           -> dec = pos;
-//     `8`           -> pos = dec;
-//     `[s`          -> sco = pos;
-//     `[u`          -> pos = sco;
-//     /* erase */
-//     `c`           -> /* clear entire screen (used to)                         */
-//     `[J` ||
-//     `[0J`         -> /* erase from cursor until end of screen                 */
-//     `[1J`         -> /* erase from cursor to beginning of screen              */
-//     `[2J`         -> /* erase entire screen                                   */
-//     `[3J`         -> /* erase saved lines (does nothing, we don't store them) */
-//     `[K` ||
-//     `[0K`         -> /* erase from cursor to end of line                      */
-//     `[1K`         -> /* erase start of line to the cursor                     */
-//     `[2K`         -> /* erase the entire line                                 */
-//     /* cursor shape */
-//     `[0q`         -> /* changes cursor shape to steady block       */
-//     `[1q`         -> /* changes cursor shape to steady block also  */
-//     `[2q`         -> /* changes cursor shape to blinking block     */
-//     `[3q`         -> /* changes cursor shape to steady underline   */
-//     `[4q`         -> /* changes cursor shape to blinking underline */
-//     `[5q`         -> /* changes cursor shape to steady bar         */
-//     `[6q`         -> /* changes cursor shape to blinking bar       */
-//     /* color/style */
-//     `[#;...;#m`   -> /* color/style seq, doesn't affect buffer */
-//     `[0m`         -> /* reset all modes (styles and colors)    */
-//     `[1m`         -> /* set bold mode.                         */
-//     `[2m`         -> /* set dim/faint mode.                    */
-//     `[3m`         -> /* set italic mode.                       */
-//     `[4m`         -> /* set underline mode.                    */
-//     `[5m`         -> /* set blinking mode                      */
-//     `[7m`         -> /* set inverse/reverse mode               */
-//     `[8m`         -> /* set hidden/invisible mode              */
-//     `[9m`         -> /* set strikethrough mode.                */
-//     `[38;5;{ID}m` -> /* Set foreground color. (256 table)      */
-//     `[48;5;{ID}m` -> /* Set background color. (256 table)      */
-//     `[38;2;{ID}m` -> /* Set foreground color. (RGB table)      */
-//     `[48;2;{ID}m` -> /* Set background color. (RGB table)      */
-//     `[{c}m`       -> /* c should be in range of colors, then it sets specified color */
-//     /* screen */
-//     `[={value}h`  -> /* Changes the screen width or type to the mode specified by value. */
-//     `[=0h`        -> /* 40 x 25 monochrome (text)                                        */
-//     `[=1h`        -> /* 40 x 25 color (text)                                             */
-//     `[=2h`        -> /* 80 x 25 monochrome (text)                                        */
-//     `[=3h`        -> /* 80 x 25 color (text)                                             */
-//     `[=4h`        -> /* 320 x 200 4-color (graphics)                                     */
-//     `[=5h`        -> /* 320 x 200 monochrome (graphics)                                  */
-//     `[=6h`        -> /* 640 x 200 monochrome (graphics)                                  */
-//     `[=7h`        -> /* Enables line wrapping                                            */
-//     `[=13h`       -> /* 320 x 200 color (graphics)                                       */
-//     `[=14h`       -> /* 640 x 200 color (16-color graphics)                              */
-//     `[=15h`       -> /* 640 x 350 monochrome (2-color graphics)                          */
-//     `[=16h`       -> /* 640 x 350 color (16-color graphics)                              */
-//     `[=17h`       -> /* 640 x 480 monochrome (2-color graphics)                          */
-//     `[=18h`       -> /* 640 x 480 color (16-color graphics)                              */
-//     `[=19h`       -> /* 320 x 200 color (256-color graphics)                             */
-//     `[={value}l`  -> /* Resets mode specified by `[={value}h                             */
-//     /* common private modes */
-//     `[?25l`       -> /* make cursor invisible */
-//     `[?25h`       -> /* make cursor visible   */
-//     `[?47l`       -> /* restore screen        */
-//     `[?47h`       -> /* save screen           */
-//     /* other */
-//     `(0`          -> /* line drawing mode (enable)*/
-//     `(B`          -> /* line drawing mode (disable)*/
-//     `[{code};{string};{...}p` -> /* remaps key to specified string, for more information check https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797#keyboard-strings */
-// }
-

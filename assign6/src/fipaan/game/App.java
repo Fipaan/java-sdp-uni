@@ -1,31 +1,50 @@
 package fipaan.game;
 
+import fipaan.game.elems.*;
+import fipaan.game.events.*;
+import fipaan.game.observer.*;
+import fipaan.game.scenes.*;
+import fipaan.game.strategy.*;
+
 import fipaan.com.console.*;
 import fipaan.com.printf.*;
 import fipaan.com.console.*;
+import fipaan.com.utils.*;
+import fipaan.com.errors.*;
+import fipaan.com.wrapper.*;
+import fipaan.com.array.*;
 import fipaan.com.*;
+import java.util.*;
+import java.io.IOException;
 
 public class App {
-    public Console console;
-    public void run() {
-        FormattedObj[] res = Sscanf.sscanf("[%d;%dH", "[3;3H");
-        ConsoleBuffer buf = new ConsoleBuffer(console);
-        Global.info.printfn("res.length() = %d", res.length);
+    public Context context;
+
+    public void run() throws IOException {
+        while (true) {
+            long start = System.nanoTime();
+            context.updateConsoleSize();
+            while (context.available()) {
+                context.readOne();
+                if (context.input == 'q') return;
+                context.onClick();
+            }
+            if (context.isResized()) {
+                context
+               .saveOldSize()
+               .onResize()
+               .flushInvisibleCursor();
+            }
+            long end = System.nanoTime();
+            long duration = end - start;
+            double duration_s = duration / 1_000_000.0;
+            if (context.FPS_DT > duration_s) ProcessUtils.sleep(context.FPS_DT - duration_s);
+        }
     }
 
     public App() {
-        console = new ConsoleBuilder()
-                   .setCursorVisible(false)
-                   .setEcho(false)
-                   .setRawMode(true)
-                   .setHiddenMode(true)
-                 .build();
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            console
-            .setCursorVisible(true)
-            .setHiddenMode(false)
-            .setRawMode(false)
-            .setEcho(true);
-        }));
+          context = new Context()
+         .addScene(new MenuScene("Main Menu"))
+         .setMainScene("Main Menu");
     }
 }

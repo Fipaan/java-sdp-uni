@@ -1,6 +1,9 @@
 package fipaan.com.console;
 
-public enum ConsoleKey {
+import fipaan.com.errors.*;
+import fipaan.com.has.*;
+
+public enum ConsoleKey implements HasCode<ConsoleKey> {
     Bell(0x08),
     Backspace(0x08),
     HorTab(0x09),
@@ -13,20 +16,12 @@ public enum ConsoleKey {
 
     public final int value;
     private ConsoleKey(int v) { value = v; }
+
     public String valueString() { return String.valueOf(value); }
-    
+    public int getCode() { return value; }
+    public ConsoleKey setCode(int code) { throw FError.New("Can't assign code to ConsoleKey"); }
+
     public static ConsoleKey getByCode(int code) {
-        switch (code) {
-            case Bell.value:        return Bell;
-            case Backspace.value:   return Backspace;
-            case HorTab.value:      return HorTab;
-            case Newline.value:     return Newline;
-            case VerTab.value:      return VerTab;
-            case Formfeed.value:    return Formfeed;
-            case CarriageRet.value: return CarriageRet;
-            case ESC.value:         return ESC;
-            case Delete.value:      return Delete;
-        }
-        return null;
+        return Console.getByCode(ConsoleKey.class, code);
     }
 }

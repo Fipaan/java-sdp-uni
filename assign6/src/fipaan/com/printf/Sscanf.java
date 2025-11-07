@@ -3,55 +3,121 @@ package fipaan.com.printf;
 import fipaan.com.errors.*;
 import fipaan.com.utils.*;
 import fipaan.com.generic.*;
+import fipaan.com.string.*;
 import java.util.ArrayList;
 
 public class Sscanf {
     private static ArrayList<FormattedObj> res = new ArrayList<>();
     private static StringBuilder sb = new StringBuilder();
-    public static lastReadLength = -1;
+    public static int lastReadLength = -1;
+    public static String lastError = null;
     public static FormattedObj[] sscanf(String fmt, String str) {
         return sscanf(new StringCursor(fmt), new StringCursor(str));
     }
+    private static <T> T returnError(String msg) { lastError = msg; return null; }
     public static FormattedObj[] sscanf(StringCursor fmt, StringCursor str) {
         lastReadLength = -1;
+        lastError = null;
         res.clear();
-        for (; fmt.i < fmt.length; ++fmt.i) {
+        int initI = str.i;
+        for (; fmt.i < fmt.length ;) {
             char chFmt = fmt.charAt();
             switch (chFmt) {
                 case '%': {
                     fmt.i += 1;
-                    Triple<FormattedObj, Integer, Integer> is = parseFormat(fmt, str);
-                    if (is == null) return null;
-                    throw FError.TODO();
-                } /* break; */
+                    FormattedObj obj = parseFormat(fmt, str);
+                    if (obj == null) return null;
+                    res.add(obj);
+                } break;
                 default: {
-                    if (str.i >= str.length) return null; // str is empty, fmt is not
+                    if (str.i >= str.length) {
+                        return Sscanf.<FormattedObj[]>returnError("str exhausted before fmt");
+                    }
                     char ch = str.charAt(str.i);
-                    if (ch != chFmt) return null; // incorrect
+                    if (ch != chFmt) {
+                        return Sscanf.<FormattedObj[]>returnError("str char does not correspond to fmt");
+                    }
+                    fmt.i += 1;
+                    str.i += 1;
                 }
             }
         }
-        lastReadLength = str.i;
-        return ArrayList.extractArr(res);
+        lastReadLength = str.i - initI;
+        return ArrayUtils.extractArr(FormattedObj.class, res);
     }
-    private static Triple<FormattedObj, Integer, Integer> parseFormat(StringCursor fmt, StringCursor str) {
+    public static FormattedObj[] sscanfErr(String fmt, String str) {
+        FormattedObj[] result = sscanf(fmt, str);
+        if (result == null) throw FError.New(lastError);
+        return result;
+    }
+    private static FormattedObj parseFormat(StringCursor fmt, StringCursor str) {
         switch (fmt.charAt()) {
-            case 'd': return parseInt(fmt, str);
-            case 'f': return parseFloat(fmt, str);
-            case 's': return parseString(fmt, str);
+            case 'd': fmt.i += 1; return parseInt(fmt, str);
+            case 'f': fmt.i += 1; return parseFloat(fmt, str);
+            case 's': fmt.i += 1; return parseString(fmt, str);
         }
         throw FError.New("unknown format: %s", fmt.toString());
     }
-    private static Triple<FormattedObj, Integer, Integer> parseInt(StringCursor fmt, StringCursor str) {
+    private static FormattedObj parseInt(StringCursor fmt, StringCursor str) {
         sb.setLength(0);
-        for (int j = i; j < len; ++j) {
+        if (str.i >= str.length) {
+            return Sscanf.<FormattedObj>returnError("expected int, got eos");
         }
-        throw FError.TODO();
+        if (str.charAt() == '-') sb.append('-');
+        if (str.i >= str.length) {
+            return Sscanf.<FormattedObj>returnError("expected int, got '-'");
+        }
+        while (Character.isDigit(str.charAt())) {
+            sb.append(str.charAt());
+            str.i += 1;
+            if (str.i == str.length) break;
+        }
+        String num = new String(sb);
+        if (sb.length() == 0 || (sb.length() == 1 && sb.charAt(0) == '-')) {
+            return Sscanf.<FormattedObj>returnError("expected int, got something else");
+        }
+        return new FormattedObj(Integer.valueOf(num));
     }
-    private static Triple<FormattedObj, Integer, Integer> parseFloat(StringCursor fmt, StringCursor str) {
-        throw FError.TODO();
+    private static FormattedObj parseFloat(StringCursor fmt, StringCursor str) {
+        sb.setLength(0);
+        if (str.i == str.length) {
+            return Sscanf.<FormattedObj>returnError("expected double, got eos");
+        }
+        if (str.charAt() == '-') sb.append('-');
+        if (str.i == str.length) {
+            return Sscanf.<FormattedObj>returnError("expected double, got '-'");
+        }
+        boolean floated = false;
+        while (true) {
+            char ch = str.charAt();
+            if (Character.isDigit(ch)) {
+                sb.append(str.charAt());
+                str.i += 1;
+            } else if (ch == '.') {
+                if (floated) return null; // invalid float
+                floated = true;
+            }
+            if (str.i == str.length) break;
+        }
+        if (sb.length() == 0 || (sb.length() == 1 && sb.charAt(0) == '-')) {
+            return Sscanf.<FormattedObj>returnError("expected double, got something else");
+        }
+        String num = new String(sb);
+        return new FormattedObj(Double.valueOf(num));
     }
-    private static Triple<FormattedObj, Integer, Integer> parseString(StringCursor fmt, StringCursor str) {
-        throw FError.TODO();
+    private static FormattedObj parseString(StringCursor fmt, StringCursor str) {
+        if (fmt.i == fmt.length) return new FormattedObj(str.toString());
+        char stopAt = fmt.charAt();
+        sb.setLength(0);
+        while (true) {
+            if (str.i >= str.length) {
+                return Sscanf.<FormattedObj>returnError("expected char after string, got nothing");
+            }
+            char ch = str.charAt();
+            if (ch == stopAt) break;
+            sb.append(ch);
+            str.i += 1;
+        }
+        return new FormattedObj(new String(sb));
     }
 }
