@@ -79,6 +79,13 @@ public class Array2D<T> implements HasSize<Array2D<T>> {
     public Array2D<T> move(T[] in, int y) {
         return move(in, 0, in.length, 0, y);
     }
+    public Array2D<T> shiftY(int dy) {
+        int width  = getWidth();
+        int height = getHeight();
+        System.arraycopy(getRaw(), dy*width, getRaw(), 0, (height - dy)*width);
+        memset((height - dy)*width, height*width, null);
+        return this;
+    }
     public int getLineWidth(int y) {
         T[] buf = getRaw();
         int width = getWidth();
@@ -138,6 +145,9 @@ public class Array2D<T> implements HasSize<Array2D<T>> {
     public Array2D<T> eraseLine(int y) {
         int width = getWidth();
         return memset(width*y, width*(y + 1), null);
+    }
+    public Array2D<T> erase() {
+        return memset(0, getWidth()*getHeight(), null);
     }
     @Override public String toString() {
         int width  = getWidth();

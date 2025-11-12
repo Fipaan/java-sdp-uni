@@ -1,55 +1,54 @@
 package fipaan.com.console;
 
 import fipaan.com.console.style.*;
-import fipaan.com.has.*;
+import fipaan.com.has.HasRect;
 import java.io.OutputStream;
 
+// TODO: merge with ConsoleBuffer and implement default handleKey(s),
+//       maybe convert to abstract class
 public interface IConsoleBuffer<Self extends IConsoleBuffer<Self>> extends HasRect<Self> {
-    // --- Audio / Alerts ---
-    Self ringBellAction();
+    /* buffer / output */
+    Self writeInBufferAction(int code);
+    Self writeInBufferAction(int[] codes);
+    Self writeOutAction(OutputStream out, String str);
 
-    // --- Screen Modes ---
-    Self setScreenModeAction(ConsoleScreenMode mode);
-    Self resetScreenModeAction(ConsoleScreenMode mode);
-    Self onLinuxResetXAction();
+    /* simple controls */
+    Self resetLineAction();
+    Self newLineAction();
+    Self horTabAction();
+    Self verTabAction();
+    Self formFeedAction();
+    Self backspaceAction();
+    Self deleteAction();
+    Self bellAction();
 
-    // --- Screen Management ---
-    Self oldClearScreenAction();
-    Self eraseScreenAction();
-    Self eraseStoredLinesAction();
-    Self saveScreenAction();
-    Self restoreScreenAction();
-    Self scrollUpAction();
-    Self moveToNextPageAction();
-
-    // --- Erase Operations ---
-    Self eraseCursorToEOSAction();
-    Self eraseCursorToBOSAction();
-    Self eraseCursorToEOLAction();
-    Self eraseCursorToBOLAction();
-    Self eraseLineAction();
-    Self removeAtCursorAction();
-
-    // --- Cursor Control ---
-    Self setCursorVisibleAction(boolean isCursorVisible);
-    Self setCursorShapeAction(CursorShape shape);
-    Self requestPositionAction();
-    Self deleteLastAtCurrentLineAction();
-
-    // --- State Save / Restore ---
+    /* screen / DEC/SCO */
+    Self clearScreenAction();
+    Self moveUpAction();
     Self saveDECAction();
     Self restoreDECAction();
     Self saveSCOAction();
     Self restoreSCOAction();
+    Self storeScreenAction(boolean store);
+    Self requestPositionAction();
 
-    // --- Drawing / Styles ---
-    Self setLineDrawingModeAction(boolean isDrawing);
+    /* erase */
+    Self eraseCursorToEOSAction();
+    Self eraseCursorToBOSAction();
+    Self eraseScreenAction();
+    Self eraseStoredLinesAction();
+    Self eraseCursorToEOLAction();
+    Self eraseCursorToBOLAction();
+    Self eraseLineAction();
+
+    /* styles / colors / cursor shape */
+    Self setLineDrawingModeAction(boolean enable);
     Self setStyleAction(ConsoleStyle style);
-    Self applyStylesAction(ConsoleStyleAny[] styles);
     Self setColor16Action(ConsoleColor16 color);
-    Self setColor256Action(ConsoleColor256 color);
+    Self applyStyleSeqAction(ConsoleStyleAny style);
+    Self setCursorShapeAction(CursorShape shape);
 
-    // --- Input / Output ---
-    Self writeCodepointAction(int key);
-    Self writeOutAction(OutputStream out, String text);
+    /* screen/private modes */
+    Self screenModeAction(ConsoleScreenMode mode, boolean enable);
+    Self cursorVisibilityAction(boolean visible);
 }

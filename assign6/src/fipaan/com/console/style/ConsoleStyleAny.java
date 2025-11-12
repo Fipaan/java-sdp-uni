@@ -5,9 +5,14 @@ import fipaan.com.utils.TypeUtils;
 import fipaan.com.generic.Pair;
 
 public class ConsoleStyleAny {
+    public static final ConsoleStyleAny RESET_COLORS = new ConsoleStyleAny()
+            .add(ConsoleColor16.ForeDefault)
+            .add(ConsoleColor16.BackDefault);
     public ConsoleStyleAnyType type;
     private Object obj;
-    
+
+    public Object getRaw() { return obj; }
+
     private ConsoleStyleAny(ConsoleStyleAnyType type, Object obj) { this.type = type; this.obj = obj; }
     private ConsoleStyleAny(ConsoleStyleAny style) { this(style.type, style.obj); }
     public ConsoleStyleAny(ConsoleStyle    style) { this(ConsoleStyleAnyType.Style,    style); }
@@ -16,41 +21,38 @@ public class ConsoleStyleAny {
     public ConsoleStyleAny(ConsoleColorRGB color) { this(ConsoleStyleAnyType.ColorRGB, color); }
     public ConsoleStyleAny(ConsoleStyleAny head, ConsoleStyleAny tail) { this(ConsoleStyleAnyType.Compound, new Pair<>(head, tail)); }
     public ConsoleStyleAny(Pair<ConsoleStyleAny, ConsoleStyleAny> pair) { this(ConsoleStyleAnyType.Compound, pair); }
+    public ConsoleStyleAny() { this((ConsoleStyleAnyType) null, null); }
 
-    private Pair<ConsoleStyleAny, ConsoleStyleAny> prepareDecorator() {
-        ConsoleStyleAny head = new ConsoleStyleAny(this);
-        type = ConsoleStyleAnyType.Compound;
-        Pair<ConsoleStyleAny, ConsoleStyleAny> pair = new Pair<>(head, null);
-        obj = pair;
-        return pair;
+    public ConsoleStyleAny add(ConsoleStyleAny style) {
+        if (obj != null) {
+            ConsoleStyleAny head = new ConsoleStyleAny(this);
+            type = ConsoleStyleAnyType.Compound;
+            Pair<ConsoleStyleAny, ConsoleStyleAny> pair = new Pair<>(head, null);
+            obj = pair;
+            pair.second = style;
+        } else {
+            type = style.type;
+            obj = style.getRaw();
+        }
+        return this;
     }
     public ConsoleStyleAny add(ConsoleStyle style) {
-        prepareDecorator().second = new ConsoleStyleAny(style);
-        return this;
+        return add(new ConsoleStyleAny(style));
     }
     public ConsoleStyleAny add(ConsoleColor16 color) {
-        prepareDecorator().second = new ConsoleStyleAny(color);
-        return this;
+        return add(new ConsoleStyleAny(color));
     }
     public ConsoleStyleAny add(ConsoleColor256 color) {
-        prepareDecorator().second = new ConsoleStyleAny(color);
-        return this;
+        return add(new ConsoleStyleAny(color));
     }
     public ConsoleStyleAny add(ConsoleColorRGB color) {
-        prepareDecorator().second = new ConsoleStyleAny(color);
-        return this;
+        return add(new ConsoleStyleAny(color));
     }
     public ConsoleStyleAny add(ConsoleStyleAny head, ConsoleStyleAny tail) {
-        prepareDecorator().second = new ConsoleStyleAny(head, tail);
-        return this;
+        return add(new ConsoleStyleAny(head, tail));
     }
     public ConsoleStyleAny add(Pair<ConsoleStyleAny, ConsoleStyleAny> pair) {
-        prepareDecorator().second = new ConsoleStyleAny(pair);
-        return this;
-    }
-    public ConsoleStyleAny add(ConsoleStyleAny style) {
-        prepareDecorator().second = style;
-        return this;
+        return add(new ConsoleStyleAny(pair));
     }
 
     public ConsoleStyle getStyle() {
@@ -79,11 +81,11 @@ public class ConsoleStyleAny {
     }
     public String valueString() {
         switch (type) {
-            case ConsoleStyleAnyType.Style:    return getStyle().toString();
-            case ConsoleStyleAnyType.Color16:  return getColor16().toString();
-            case ConsoleStyleAnyType.Color256: return getColor256().toString();
-            case ConsoleStyleAnyType.ColorRGB: return getColorRGB().toString();
-            case ConsoleStyleAnyType.Compound: return head().toString() + ";" + tail().toString();
+            case ConsoleStyleAnyType.Style:    return getStyle().valueString();
+            case ConsoleStyleAnyType.Color16:  return getColor16().valueString();
+            case ConsoleStyleAnyType.Color256: return getColor256().valueString();
+            case ConsoleStyleAnyType.ColorRGB: return getColorRGB().valueString();
+            case ConsoleStyleAnyType.Compound: return head().valueString() + ";" + tail().valueString();
             default: throw FError.New("Unknown type: %s", type.toString());
         }
     }

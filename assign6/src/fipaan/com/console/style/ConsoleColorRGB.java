@@ -14,7 +14,7 @@ public class ConsoleColorRGB {
     public ConsoleColorRGB setG(int g) { verifyRange("green", g); this.g = g; return this; }
     public ConsoleColorRGB setB(int b) { verifyRange("blue",  b); this.b = b; return this; }
     public String valueString() { return String.format("%d;%d;%d;%d;%d", mode.value, getSpace().value, r, g, b); }
-    public void verifyRange(String target, int val) { if (val < 0 || val > 255) FThrow.New("Invalid %s for True 16 (%d)", target, val); }
+    public void verifyRange(String target, int val) { if (val < 0 || val > 255) FThrow.New("Invalid %s for RGB, expected 0.255, got %d", target, val); }
 
     public ConsoleColorRGB(ConsoleColorMode colorMode, int r, int g, int b) { setR(r).setG(g).setB(b); mode = colorMode; }
 

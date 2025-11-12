@@ -4,6 +4,7 @@ import java.awt.Point;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import fipaan.com.is.IsReflector;
+import fipaan.com.utils.MathUtils;
 
 public interface HasLocation<Self extends HasLocation<Self>> extends IsReflector<Self> {
     int getX();
@@ -46,4 +47,7 @@ public interface HasLocation<Self extends HasLocation<Self>> extends IsReflector
     default Self subY(double y)           { return setY(getY() - y); }
     default Self subL(double x, double y) { return subX(x).subY(y);  }
     default Self subL(double t)           { return subX(t).subY(t);  }
+    
+    default Self clampX(double min, double max) { return setX(MathUtils.clamp(getX(), min, max)); }
+    default Self clampY(double min, double max) { return setY(MathUtils.clamp(getY(), min, max)); }
 }

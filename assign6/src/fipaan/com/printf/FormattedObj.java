@@ -11,15 +11,15 @@ public class FormattedObj {
         this.obj  = obj;
     }
     public FormattedObj(Integer obj) { this(FormattedObjType.Integer, obj); }
-    public FormattedObj(Double  obj) { this(FormattedObjType.Double,  obj); }
+    public FormattedObj(Float   obj) { this(FormattedObjType.Float,   obj); }
     public FormattedObj(String  obj) { this(FormattedObjType.String,  obj); }
     public Integer getInt() {
         FormattedObjType.Integer.expect(type);
         return TypeUtils.<Object, Integer>cast(obj);
     }
-    public Double getDouble() {
-        FormattedObjType.Double.expect(type);
-        return TypeUtils.<Object, Double>cast(obj);
+    public Float getFloat() {
+        FormattedObjType.Float.expect(type);
+        return TypeUtils.<Object, Float>cast(obj);
     }
     public String getString() {
         FormattedObjType.String.expect(type);

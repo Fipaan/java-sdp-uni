@@ -24,6 +24,7 @@ public class App {
         while (true) {
             long start = System.nanoTime();
             context.updateConsoleSize();
+            context.beginDrawing();
             while (context.available()) {
                 context.readOne();
                 if (context.input == 'q') return;
@@ -35,6 +36,7 @@ public class App {
                .onResize()
                .flushInvisibleCursor();
             }
+            context.endDrawing();
             long end = System.nanoTime();
             long duration = end - start;
             double duration_s = duration / 1_000_000.0;

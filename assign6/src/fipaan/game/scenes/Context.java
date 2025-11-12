@@ -72,18 +72,23 @@ public class Context implements HasSize<Context>, HasLocation<Context> {
         }
         return this;
     }
+    private static final ConsoleStyleAny ERROR_COLORS = new ConsoleStyleAny()
+            .add(ConsoleColor16.BackRed)
+            .add(ConsoleColor16.ForeWhite);
     public Context onResize() {
-        if (getWidth() >= MIN_WIDTH && getHeight() >= MIN_HEIGHT) {
-            mainScene.applyContext(this).onClick();
+        int width  = getWidth();
+        int height = getHeight();
+        if (width >= MIN_WIDTH && height >= MIN_HEIGHT) {
+            mainScene.applyContext(this).onResize();
         } else {
             String msg = String.format("Too small screen, you need at least %dx%d", MIN_WIDTH, MIN_HEIGHT);
             console
            .eraseStoredLines()
-           .oldClearScreen()
-           .applyStyles(ConsoleColor16.BackRed, ConsoleColor16.ForeWhite)
+           .clearScreen()
+           .applyStyleSeq(ERROR_COLORS)
            .fillBorders('#')
-           .putStr(msg, (getWidth() - msg.length()) / 2, (getHeight() - 1) / 2)
-           .applyStyles(ConsoleColor16.defaultBackAndFore)
+           .putStr(msg, (width - msg.length()) / 2, (height - 1) / 2)
+           .applyStyleSeq(ConsoleStyleAny.RESET_COLORS)
            .flushOut();
         }
         return this;
@@ -110,8 +115,8 @@ public class Context implements HasSize<Context>, HasLocation<Context> {
 
     public int getX() { return cursor.getX(); }
     public int getY() { return cursor.getY(); }
-    public Context setX(int x) { cursor.setX(x); return this; }
-    public Context setY(int y) { cursor.setY(y); return this; }
+    public Context setX(int x) { cursor.setX(x); console.setX(x); return this; }
+    public Context setY(int y) { cursor.setY(y); console.setY(y); return this; }
 
     public int getWidth()  { return console.getWidth(); }
     public int getHeight() { return console.getHeight(); }

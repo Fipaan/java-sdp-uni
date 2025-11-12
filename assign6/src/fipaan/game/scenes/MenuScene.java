@@ -11,12 +11,12 @@ import fipaan.com.*;
 
 public class MenuScene extends Scene {
     private Area dude = new Area(3, 3,
-             // " [] ",
-             // "/TT⧵",
-             // " /⧵ "
-                "*   ",
-                "    ",
-                "    "
+                " [] ",
+                "/TT⧵",
+                " /⧵ "
+             // "*   ",
+             // "    ",
+             // "    "
             );
     public MenuScene(String name) { super(name); }
 
@@ -49,7 +49,7 @@ public class MenuScene extends Scene {
         int backY = (context.getHeight() - backHeight) / 2;
         context.console
         .eraseStoredLines()
-        .oldClearScreen()
+        .clearScreen()
         .fillBorders('#')
         .putStr("                                                                   __       ",            backX, backY +  0)
         .putStr("             /\\        /\\      /\\           /\\       /\\          _/  \\_     ",      backX, backY +  1)
@@ -67,22 +67,18 @@ public class MenuScene extends Scene {
         .putStr("                         ~  ~  ~  ~  ~  ~  ~  ~                             ",            backX, backY + 13)
         .putStr("                ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~                          ",            backX, backY + 14)
         .putStr("~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~  ~                     ",            backX, backY + 15)
+        .putStr(" [] ", getX(), getY())
+        .putStr("/TT⧵", getX(), getY() + 1)
+        .putStr(" /⧵ ", getX(), getY() + 2)
+        // .applyBack(dude)
         .flushOut();
         redrawCursor();
         return this;
     }
-    @Override
-    public Scene beginDrawing() {
-        // context.console
-        // .applyBack(dude)
-        // .flushOut();
+    @Override public Scene beginDrawing() {
         return this;
     }
-    @Override
-    public Scene endDrawing() {
-        // context.console
-        // .restoreBack(dude)
-        // .flushOut();
+    @Override public Scene endDrawing() {
         return this;
     }
 }

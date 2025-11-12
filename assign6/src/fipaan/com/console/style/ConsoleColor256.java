@@ -9,7 +9,7 @@ public class ConsoleColor256 {
     private int value;
     public int getValue() { return value; }
     public ConsoleColor256 setValue(int val) {
-        if (val < 0 || val > 255) FThrow.New("Invalid value for True 16 (%d)", val);
+        if (val < 0 || val > 255) FThrow.New("Invalid value for Color256, expected 0..255, got %d", val);
         value = val;
         return this;
     }

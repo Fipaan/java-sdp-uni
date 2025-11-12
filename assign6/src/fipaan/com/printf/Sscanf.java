@@ -52,20 +52,25 @@ public class Sscanf {
     }
     private static FormattedObj parseFormat(StringCursor fmt, StringCursor str) {
         switch (fmt.charAt()) {
-            case 'd': fmt.i += 1; return parseInt(fmt, str);
-            case 'f': fmt.i += 1; return parseFloat(fmt, str);
+            case 'd': fmt.i += 1; return parseIntWrap(str);
+            case 'f': fmt.i += 1; return parseFloatWrap(str);
             case 's': fmt.i += 1; return parseString(fmt, str);
         }
         throw FError.New("unknown format: %s", fmt.toString());
     }
-    private static FormattedObj parseInt(StringCursor fmt, StringCursor str) {
+    private static FormattedObj parseIntWrap(StringCursor str) {
+        Integer res = parseInt(str);
+        if (res == null) return null;
+        return new FormattedObj(res);
+    }
+    public static Integer parseInt(StringCursor str) {
         sb.setLength(0);
         if (str.i >= str.length) {
-            return Sscanf.<FormattedObj>returnError("expected int, got eos");
+            return Sscanf.<Integer>returnError("expected int, got eos");
         }
         if (str.charAt() == '-') sb.append('-');
         if (str.i >= str.length) {
-            return Sscanf.<FormattedObj>returnError("expected int, got '-'");
+            return Sscanf.<Integer>returnError("expected int, got '-'");
         }
         while (Character.isDigit(str.charAt())) {
             sb.append(str.charAt());
@@ -74,18 +79,23 @@ public class Sscanf {
         }
         String num = new String(sb);
         if (sb.length() == 0 || (sb.length() == 1 && sb.charAt(0) == '-')) {
-            return Sscanf.<FormattedObj>returnError("expected int, got something else");
+            return Sscanf.<Integer>returnError("expected int, got something else");
         }
-        return new FormattedObj(Integer.valueOf(num));
+        return Integer.valueOf(num);
     }
-    private static FormattedObj parseFloat(StringCursor fmt, StringCursor str) {
+    private static FormattedObj parseFloatWrap(StringCursor str) {
+        Float res = parseFloat(str);
+        if (res == null) return null;
+        return new FormattedObj(res);
+    }
+    public static Float parseFloat(StringCursor str) {
         sb.setLength(0);
         if (str.i == str.length) {
-            return Sscanf.<FormattedObj>returnError("expected double, got eos");
+            return Sscanf.<Float>returnError("expected double, got eos");
         }
         if (str.charAt() == '-') sb.append('-');
         if (str.i == str.length) {
-            return Sscanf.<FormattedObj>returnError("expected double, got '-'");
+            return Sscanf.<Float>returnError("expected double, got '-'");
         }
         boolean floated = false;
         while (true) {
@@ -100,10 +110,10 @@ public class Sscanf {
             if (str.i == str.length) break;
         }
         if (sb.length() == 0 || (sb.length() == 1 && sb.charAt(0) == '-')) {
-            return Sscanf.<FormattedObj>returnError("expected double, got something else");
+            return Sscanf.<Float>returnError("expected double, got something else");
         }
         String num = new String(sb);
-        return new FormattedObj(Double.valueOf(num));
+        return Float.valueOf(num);
     }
     private static FormattedObj parseString(StringCursor fmt, StringCursor str) {
         if (fmt.i == fmt.length) return new FormattedObj(str.toString());

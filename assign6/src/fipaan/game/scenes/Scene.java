@@ -18,13 +18,13 @@ public abstract class Scene implements HasLocation<Scene> {
     public int getY() { return context.getY(); }
     public Scene setX(int x) {
         if (x < 1) x = 1;
-        else if (x + 1>= context.getWidth()) x = context.getWidth() - 2;
+        else if (x + 1 >= context.getWidth()) x = context.getWidth() - 1;
         context.setX(x);
         return this;
     }
     public Scene setY(int y) {
         if (y < 1) y = 1;
-        else if (y + 1 >= context.getHeight()) y = context.getHeight() - 2;
+        else if (y + 1 >= context.getHeight()) y = context.getHeight() - 1;
         context.setY(y);
         return this;
     }

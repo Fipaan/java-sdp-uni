@@ -4,6 +4,7 @@ import java.awt.Point;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import fipaan.com.is.IsReflector;
+import fipaan.com.utils.MathUtils;
 
 public interface HasSize<Self extends HasSize<Self>> {
     int getWidth();
@@ -46,4 +47,7 @@ public interface HasSize<Self extends HasSize<Self>> {
     default Self subH(double h) { return setHeight(getHeight() - h); }
     default Self sub (double w, double h) { return subW(w).subH(h); }
     default Self sub (double s) { return subW(s).subH(s); }
+    
+    default Self clampW(double min, double max) { return setWidth(MathUtils.clamp(getWidth(),   min, max)); }
+    default Self clampH(double min, double max) { return setHeight(MathUtils.clamp(getHeight(), min, max)); }
 }

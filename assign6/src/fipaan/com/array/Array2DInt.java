@@ -79,6 +79,13 @@ public class Array2DInt implements HasSize<Array2DInt> {
     public Array2DInt move(int[] in, int y) {
         return move(in, 0, in.length, 0, y);
     }
+    public Array2DInt shiftY(int dy) {
+        int width  = getWidth();
+        int height = getHeight();
+        System.arraycopy(getRaw(), dy*width, getRaw(), 0, (height - dy)*width);
+        memset((height - dy)*width, height*width, 0);
+        return this;
+    }
     public int getLineWidth(int y) {
         int[] buf = getRaw();
         int width = getWidth();
@@ -138,6 +145,9 @@ public class Array2DInt implements HasSize<Array2DInt> {
     public Array2DInt eraseLine(int y) {
         int width = getWidth();
         return memset(width*y, width*(y + 1), 0);
+    }
+    public Array2DInt erase() {
+        return memset(0, getWidth()*getHeight(), 0);
     }
     @Override public String toString() {
         int width  = getWidth();

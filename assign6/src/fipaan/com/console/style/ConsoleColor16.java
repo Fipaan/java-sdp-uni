@@ -91,6 +91,8 @@ public enum ConsoleColor16 implements HasCode<ConsoleColor16> {
         }
     }
 
+    private RuntimeException unknownColor() { return FError.New("unknown color: %s", this.toString()); }
+
     public boolean isForeground() {
         switch (this) {
             case ForeBlack:
@@ -127,7 +129,7 @@ public enum ConsoleColor16 implements HasCode<ConsoleColor16> {
             case BackBrightMagenta:
             case BackBrightCyan:
             case BackBrightWhite: return false;
-            default: throw FError.New("Unknown color (%d)", value);
+            default: throw unknownColor();
         }
     }
 
@@ -167,7 +169,7 @@ public enum ConsoleColor16 implements HasCode<ConsoleColor16> {
             case BackBrightMagenta:
             case BackBrightCyan:
             case BackBrightWhite: return true;
-            default: throw FError.New("Unknown color (%d)", value);
+            default: throw unknownColor();
         }
     }
 
@@ -207,7 +209,7 @@ public enum ConsoleColor16 implements HasCode<ConsoleColor16> {
             case BackBrightMagenta:
             case BackBrightCyan:
             case BackBrightWhite: return true;
-            default: throw FError.New("Unknown color (%d)", value);
+            default: throw unknownColor();
         }
     }
 }

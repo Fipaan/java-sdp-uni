@@ -52,6 +52,7 @@ public class Area {
     public Area restoreBack(Console console) {
         int width  = console.getWidth();
         int height = console.getHeight();
+        System.err.println("restoreBack()");
         ArrayUtils.onArraysDo(
             backBuf,
             console.getScreenArr(),

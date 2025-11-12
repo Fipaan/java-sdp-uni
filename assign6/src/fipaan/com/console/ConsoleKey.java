@@ -2,6 +2,7 @@ package fipaan.com.console;
 
 import fipaan.com.errors.*;
 import fipaan.com.has.*;
+import fipaan.com.utils.StringUtils;
 
 public enum ConsoleKey implements HasCode<ConsoleKey> {
     Bell(0x08),
@@ -17,9 +18,11 @@ public enum ConsoleKey implements HasCode<ConsoleKey> {
     public final int value;
     private ConsoleKey(int v) { value = v; }
 
-    public String valueString() { return String.valueOf(value); }
-    public int getCode() { return value; }
-    public ConsoleKey setCode(int code) { throw FError.New("Can't assign code to ConsoleKey"); }
+    public String valueString() { return StringUtils.CodepointToString(value); }
+    @Override public int getCode() { return value; }
+    @Override public ConsoleKey setCode(int code) { throw FError.New("Can't assign code to ConsoleKey"); }
+
+    @Override public String toString() { return String.format("fipaan.ConsoleKey{code: %d}", value); }
 
     public static ConsoleKey getByCode(int code) {
         return Console.getByCode(ConsoleKey.class, code);

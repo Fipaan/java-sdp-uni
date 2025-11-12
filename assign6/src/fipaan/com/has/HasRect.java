@@ -3,6 +3,7 @@ package fipaan.com.has;
 import java.awt.Point;
 import java.awt.Dimension;
 import java.awt.Rectangle;
+import fipaan.com.utils.MathUtils;
 
 public interface HasRect<Self extends HasRect<Self>> extends HasLocation<Self>, HasSize<Self> {
     // @Override public int getWidth();
@@ -71,4 +72,7 @@ public interface HasRect<Self extends HasRect<Self>> extends HasLocation<Self>, 
         double h = getSize().height;
         return cut(pbw * h, pbh * h);
     }
+    
+    default Self clampX() { return setX(MathUtils.clamp(getX(), 0, getWidth()));  }
+    default Self clampY() { return setY(MathUtils.clamp(getY(), 0, getHeight())); }
 }

@@ -21,16 +21,17 @@ public enum ConsoleStyle implements HasCode<ConsoleStyle> {
     SetHidden(8),
     ResetHidden(28),
     SetStrikethrough(9),
-    ResetStrikethrough(29),
+    ResetStrikethrough(29);
+
     // aliases
-    ResetBold(ResetBoldAndDim.value),
-    ResetDim(ResetBoldAndDim.value),
-    SetFaint(SetDim.value),
-    ResetFaint(ResetBoldAndDim.value),
-    SetReverse(SetInverse.value),
-    ResetReverse(ResetInverse.value),
-    SetInvisible(SetHidden.value),
-    ResetInvisible(ResetHidden.value);
+    public static final ConsoleStyle
+        ResetBold      = ResetBoldAndDim,
+        ResetDim       = ResetBoldAndDim,
+        SetFaint       = SetDim,
+        ResetFaint     = ResetDim,
+        SetReverse     = SetInverse,
+        SetInvisible   = SetHidden,
+        ResetInvisible = ResetHidden;
 
     public final int value;
     private ConsoleStyle(int v) { value = v; }
